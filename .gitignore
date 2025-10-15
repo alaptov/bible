@@ -31,17 +31,23 @@ env/
 .venv/
 
 # Flask
-instance/
+# instance/ - COMMENTED OUT: Bible database is static content that should be committed
 .webassets-cache
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# Database - COMMENTED OUT: Bible database is static content that should be committed
+# *.db
+# *.sqlite
+# *.sqlite3
 
 # Environment variables
 .env
 .flaskenv
+
+# SSH Keys (security)
+id_ed25519*
+*.pub
+*.pem
+*.key
 
 # IDE
 .vscode/
