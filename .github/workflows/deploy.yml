@@ -1,0 +1,60 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT || 22 }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH || '/var/www/paleo-hebrew-bible' }}
+
+            echo "🔄 Pulling latest changes..."
+            git pull origin main
+
+            echo "🐍 Activating virtual environment..."
+            source venv/bin/activate
+
+            echo "📦 Installing/updating dependencies..."
+            pip install -r requirements.txt
+
+            echo "🗄️ Checking database..."
+            python -c "from app import app; from models import db; app.app_context().push(); db.create_all(); print('Database OK')"
+
+            echo "🔄 Restarting application service..."
+            sudo systemctl restart paleo-hebrew-bible
+
+            echo "✅ Checking service status..."
+            sudo systemctl status paleo-hebrew-bible --no-pager
+
+            echo "🏥 Running health check..."
+            sleep 5
+            curl -f http://localhost/api/test || exit 1
+
+            echo "🎉 Deployment completed successfully!"
+
+      - name: Deployment notification
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+            exit 1
+          fi
